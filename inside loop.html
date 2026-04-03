@@ -1,0 +1,1588 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>INSIDE LOOP</title>
+  <style>
+    :root{
+      --bg:#050509;
+      --panel:#0b0c12cc;
+      --text:#e8e7e2;
+      --dim:#8a8f9f;
+      --accent:#b6d0ff;
+      --accent2:#8ad6c7;
+      --border:#2c3142;
+      --danger:#ff7b91;
+      --glow: 0 0 18px rgba(182,208,255,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:radial-gradient(circle at 50% 45%, #0b0c14 0%, #050509 65%, #020204 100%);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    button,input{font:inherit}
+    #app{position:fixed;inset:0}
+    .shell{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden}
+    .panel{width:min(980px,100%);min-height:min(680px,100%);border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg, rgba(13,15,22,.84), rgba(5,6,10,.86));box-shadow:0 10px 60px rgba(0,0,0,.45), var(--glow);backdrop-filter: blur(10px);position:relative;overflow:hidden;border-radius:22px}
+    .frame{position:absolute;inset:18px;border:1px solid rgba(182,208,255,.08);border-radius:16px;pointer-events:none}
+    .corners::before,.corners::after{content:"";position:absolute;width:34px;height:34px;border:1px solid rgba(182,208,255,.12);pointer-events:none}
+    .corners::before{top:18px;left:18px;border-right:none;border-bottom:none}
+    .corners::after{top:18px;right:18px;border-left:none;border-bottom:none}
+    .corner-bottom-left,.corner-bottom-right{position:absolute;width:34px;height:34px;border:1px solid rgba(182,208,255,.12);bottom:18px;pointer-events:none}
+    .corner-bottom-left{left:18px;border-right:none;border-top:none}
+    .corner-bottom-right{right:18px;border-left:none;border-top:none}
+    .content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0 24px;gap:12px}
+    .brand{font-size:12px;letter-spacing:.42em;color:var(--accent);text-transform:uppercase;opacity:.92}
+    .status{font-size:11px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+    .status span{opacity:.8}
+    .main{flex:1;display:grid;grid-template-columns: 1.25fr .85fr;gap:24px;padding:22px 24px 24px 24px;min-height:0}
+    .left,.right{min-height:0}
+    .left{display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+    .sceneTitle{font-size:clamp(24px,3vw,42px);line-height:1.04;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);text-shadow:0 0 22px rgba(182,208,255,.12);margin:0}
+    .sceneSub{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-top:10px}
+    .textBox{padding:18px 18px 12px 18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);border-radius:18px;min-height:220px;position:relative;overflow:hidden}
+    .text{white-space:pre-wrap;font-size:clamp(15px,1.5vw,18px);line-height:1.95;letter-spacing:.03em;min-height:160px}
+    .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--accent);vertical-align:-0.12em;margin-left:2px;animation:blink 1s step-end infinite}
+    .choices{display:flex;flex-direction:column;gap:10px}
+    .choice{width:100%;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.015);color:var(--text);cursor:pointer;transition:.18s ease;line-height:1.55;letter-spacing:.04em;position:relative;overflow:hidden}
+    .choice:hover{transform:translateY(-1px);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px rgba(182,208,255,.08), 0 0 18px rgba(182,208,255,.08)}
+    .choice small{color:var(--dim);letter-spacing:.2em;text-transform:uppercase}
+    .choice.flash{background:rgba(182,208,255,.08);border-color:var(--accent)}
+    .right{display:flex;flex-direction:column;gap:14px}
+    .card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);border-radius:18px;padding:16px;position:relative;overflow:hidden}
+    .card h3{margin:0 0 10px 0;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim)}
+    .stats{display:grid;grid-template-columns:1fr;gap:12px}
+    .barWrap{display:grid;gap:7px}
+    .barLabel{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+    .bar{height:10px;border-radius:999px;background:#111624;border:1px solid rgba(255,255,255,.06);overflow:hidden}
+    .fill{height:100%;width:50%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 10px rgba(182,208,255,.22)}
+    .notes{font-size:13px;line-height:1.85;color:#cfd3dd;min-height:180px;white-space:pre-wrap}
+    .glyphWrap{display:flex;align-items:center;justify-content:center;min-height:220px}
+    .glyph{width:min(240px,100%);aspect-ratio:1;opacity:.85;filter:drop-shadow(0 0 18px rgba(182,208,255,.1))}
+    .footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 24px 20px 24px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+    .footer .btn{padding:10px 12px;border:1px solid var(--border);background:rgba(255,255,255,.015);color:var(--text);border-radius:12px;cursor:pointer;transition:.18s ease}
+    .footer .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .overlay{position:absolute;inset:0;pointer-events:none;z-index:4}
+    .noise{position:absolute;inset:0;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:overlay}
+    .scan{position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 20%, transparent 80%, rgba(255,255,255,.02));background-size:100% 7px;opacity:.07;mix-blend-mode:screen;animation:scan 10s linear infinite}
+    .eye{position:absolute;width:220px;height:220px;border-radius:50%;border:1px solid rgba(255,255,255,.12);left:50%;top:48%;transform:translate(-50%,-50%) scale(.95);opacity:0;mix-blend-mode:screen;background:radial-gradient(circle, rgba(255,255,255,.10) 0 10%, rgba(255,255,255,.03) 14%, rgba(0,0,0,0) 35%) , radial-gradient(circle at 50% 50%, rgba(255,255,255,.55) 0 4%, rgba(0,0,0,0) 5%), radial-gradient(circle at 50% 50%, rgba(255,255,255,.18) 0 18%, rgba(0,0,0,0) 19%);filter:blur(.1px)}
+    .eye::before,.eye::after{content:"";position:absolute;left:50%;top:50%;width:72px;height:72px;border-radius:50%;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.15)}
+    .eye::before{box-shadow:0 0 26px rgba(255,255,255,.05) inset}
+    .eye::after{width:18px;height:18px;background:rgba(255,255,255,.8);box-shadow:0 0 12px rgba(255,255,255,.8)}
+    .glitch{position:absolute;inset:0;opacity:0;mix-blend-mode:screen;background:repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0 1px, rgba(255,255,255,0) 1px 4px)}
+    .glowline{position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg, transparent, rgba(182,208,255,.8), transparent);box-shadow:0 0 10px rgba(182,208,255,.45)}
+    .shake{animation:shake .28s linear infinite}
+    .fadeIn{animation:fadeIn .65s ease}
+    .hidden{display:none !important}
+    .modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);z-index:5}
+    .modalBox{width:min(720px,calc(100% - 32px));border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg, rgba(11,13,18,.96), rgba(5,6,10,.98));border-radius:22px;padding:22px;box-shadow:0 18px 80px rgba(0,0,0,.6)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:#090b11;color:var(--text)}
+    .mini{font-size:11px;line-height:1.75;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+    .menuGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .menuBtn{padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.015);color:var(--text);cursor:pointer;transition:.18s ease;text-align:left}
+    .menuBtn:hover{border-color:var(--accent);color:var(--accent)}
+    .slider{width:100%}
+    .startHero{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;text-align:center;padding:28px}
+    .heroTitle{font-size:clamp(32px,6vw,74px);margin:0;color:var(--accent);letter-spacing:.36em;text-transform:uppercase;font-weight:400;text-shadow:0 0 26px rgba(182,208,255,.14)}
+    .heroSub{margin-top:14px;max-width:760px;font-size:13px;line-height:2;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+    .heroActions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:34px}
+    .heroActions .choice{width:auto;min-width:220px;text-align:center}
+    .saveSlot{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.015);cursor:pointer}
+    .saveSlot:hover{border-color:var(--accent)}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes scan{from{transform:translateY(0)}to{transform:translateY(7px)}}
+    @keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(1px,-1px)}50%{transform:translate(-1px,1px)}75%{transform:translate(1px,1px)}100%{transform:translate(0,0)}}
+    @media (max-width: 920px){.main{grid-template-columns:1fr;}.right{order:-1}.panel{min-height:100%}.heroTitle{letter-spacing:.22em}.menuGrid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div id="app"></div>  <script>
+    (() => {
+      const STORAGE_KEY = "inside_loop_save_v3";
+      const clamp = (v, a=-1, b=1) => Math.max(a, Math.min(b, v));
+      const rnd = (a,b) => a + Math.random() * (b-a);
+      const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+      const deepClone = obj => JSON.parse(JSON.stringify(obj));
+
+      const BASE = {
+        scene: "boot",
+        chapter: 0,
+        node: 0,
+        textIndex: 0,
+        textDone: false,
+        flashChoice: -1,
+        menuBlink: 0,
+        settingsOpen: false,
+        paused: false,
+        reveal: 0,
+        shake: 0,
+        glitch: 0,
+        eye: 0,
+        ending: null,
+        playerName: "WITNESS",
+        startedAt: Date.now(),
+        lastSavedAt: null,
+        profile: {
+          control: 0,
+          risk: 0,
+          empathy: 0,
+          avoidance: 0,
+          curiosity: 0,
+          consistency: 0,
+          pressure: 0,
+          timeInGame: 0,
+          choices: 0,
+          sessions: 0,
+          notesFound: 0,
+          roomsVisited: 0,
+          keys: 0,
+          truth: 0,
+          spectral: 0,
+          history: []
+        },
+        inventory: [],
+        seen: {},
+        journal: [],
+        flags: {},
+        settings: { volume: 0.58, textSpeed: 28, reducedMotion: false },
+        currentText: "",
+        currentType: "boot",
+        choices: [],
+        messages: [],
+        currentRoom: "atrium",
+        roomState: {},
+        doorUnlocked: false,
+        endingVariant: null,
+        sessionCount: 0,
+        restored: false
+      };
+
+      const SCENES = [
+        {
+          id: "atrium_intro",
+          chapter: 1,
+          title: "Atrium",
+          subtitle: "you woke up here without a sound",
+          text: [
+            "A corridor opens into a wide atrium lit by a tired ceiling panel.",
+            "There are no footsteps. No distant machines. Only a low hum, like the building is trying to remember its own shape.",
+            "A note is pinned to the wall: DO NOT TURN AROUND TOO FAST."
+          ],
+          choices: [
+            { label: "Inspect the note", effects: { curiosity: 0.2, truth: 0.15, control: 0.05 }, next: "note" },
+            { label: "Look for an exit", effects: { control: 0.15, risk: 0.05, avoidance: -0.05 }, next: "door" },
+            { label: "Stay still and listen", effects: { empathy: 0.12, avoidance: 0.05, spectral: 0.08 }, next: "listen" }
+          ]
+        },
+        {
+          id: "note",
+          chapter: 1,
+          title: "The Note",
+          subtitle: "the writing is fresh",
+          text: [
+            "The ink is still glossy.",
+            "There are two lines. One is crossed out. The crossing-out feels urgent, as if the hand could not bear to leave the sentence intact.",
+            "When you lean closer, the paper smells faintly of rain and static."
+          ],
+          choices: [
+            { label: "Read the crossed-out line", effects: { curiosity: 0.25, risk: 0.1, truth: 0.1 }, next: "note_secret" },
+            { label: "Pocket the note", effects: { control: 0.15, consistency: 0.06, truth: 0.04 }, next: "door" },
+            { label: "Leave it and move on", effects: { avoidance: 0.12, control: -0.03, consistency: 0.02 }, next: "door" }
+          ]
+        },
+        {
+          id: "door",
+          chapter: 1,
+          title: "The Hall Door",
+          subtitle: "it is unlocked",
+          text: [
+            "A door stands ahead.",
+            "It is unlocked.",
+            "You were not told to open it."
+          ],
+          choices: [
+            { label: "Open it anyway", effects: { control: 0.24, risk: 0.14, pressure: 0.04 }, next: "hall" },
+            { label: "Wait for instruction", effects: { avoidance: 0.18, control: -0.08, consistency: 0.12 }, next: "hall_wait" },
+            { label: "Check the hinges first", effects: { curiosity: 0.14, control: 0.1, truth: 0.02 }, next: "hall" }
+          ]
+        },
+        {
+          id: "listen",
+          chapter: 1,
+          title: "Listening",
+          subtitle: "the building answers with silence",
+          text: [
+            "The hum lowers, then rises again.",
+            "For one second it sounds almost like breathing.",
+            "You get the distinct impression something waited for you to stop moving."
+          ],
+          choices: [
+            { label: "Approach the door", effects: { control: 0.06, curiosity: 0.08, spectral: 0.06 }, next: "door" },
+            { label: "Back away", effects: { avoidance: 0.18, pressure: 0.05, truth: -0.02 }, next: "atrium_return" },
+            { label: "Call out", effects: { risk: 0.22, empathy: 0.1, spectral: 0.16 }, next: "voice" }
+          ]
+        },
+        {
+          id: "atrium_return",
+          chapter: 1,
+          title: "Atrium",
+          subtitle: "the room is almost the same",
+          text: [
+            "You turn back.",
+            "The atrium is almost the same, except the note is now higher on the wall.",
+            "Or you are lower than before."
+          ],
+          choices: [
+            { label: "Go to the door", effects: { control: 0.08, curiosity: 0.04 }, next: "door" },
+            { label: "Touch the wall", effects: { truth: 0.08, spectral: 0.06, risk: 0.04 }, next: "wall" }
+          ]
+        },
+        {
+          id: "hall",
+          chapter: 2,
+          title: "Hallway",
+          subtitle: "the lights have forgotten you",
+          text: [
+            "The hallway is too long for the room it connects.",
+            "Doors line both sides. Some are marked. Some are not. One has your initials scratched into the paint.",
+            "The floor is clean enough to reflect a blurred version of you. It looks delayed."
+          ],
+          choices: [
+            { label: "Enter the marked room", effects: { control: 0.1, curiosity: 0.15, truth: 0.06 }, next: "records" },
+            { label: "Open the unmarked door", effects: { risk: 0.18, curiosity: 0.1, pressure: 0.04 }, next: "mirror_room" },
+            { label: "Follow the scratch marks", effects: { consistency: 0.14, truth: 0.1, spectral: 0.06 }, next: "stairwell" }
+          ]
+        },
+        {
+          id: "hall_wait",
+          chapter: 2,
+          title: "Waiting",
+          subtitle: "waiting becomes a decision",
+          text: [
+            "You wait.",
+            "The air changes in tiny ways, the kind a person notices only after they have been frightened for long enough.",
+            "A soft click comes from the door. It unlocked itself for you."
+          ],
+          choices: [
+            { label: "Open the door", effects: { control: 0.04, risk: 0.06, avoidance: 0.02 }, next: "hall" },
+            { label: "Ask who is there", effects: { empathy: 0.1, spectral: 0.1, risk: 0.05 }, next: "voice" }
+          ]
+        },
+        {
+          id: "voice",
+          chapter: 2,
+          title: "The Voice",
+          subtitle: "it did not come from the ceiling",
+          text: [
+            "A voice asks you a question.",
+            "You do not understand the question.",
+            "It repeats itself, but the second time it sounds like it is asking something different."
+          ],
+          choices: [
+            { label: "Ask it to repeat", effects: { control: 0.08, empathy: 0.12, curiosity: 0.08 }, next: "voice_repeat" },
+            { label: "Answer anyway", effects: { risk: 0.2, empathy: -0.04, pressure: 0.08 }, next: "hall" },
+            { label: "Stay silent", effects: { avoidance: 0.16, control: -0.06, consistency: 0.04 }, next: "voice_silent" }
+          ]
+        },
+        {
+          id: "voice_repeat",
+          chapter: 2,
+          title: "Repeat",
+          subtitle: "you regret hearing it twice",
+          text: [
+            "The voice says: 'Are you still pretending this is your first time?'",
+            "It pauses.",
+            "Then: 'Good. Keep pretending. It helps the shape hold.'"
+          ],
+          choices: [
+            { label: "Ask what shape", effects: { curiosity: 0.2, truth: 0.15, spectral: 0.1 }, next: "records" },
+            { label: "Leave the room", effects: { control: 0.1, avoidance: 0.08, pressure: 0.04 }, next: "hall" }
+          ]
+        },
+        {
+          id: "voice_silent",
+          chapter: 2,
+          title: "Silence",
+          subtitle: "silence is also a message",
+          text: [
+            "The voice doesn't leave.",
+            "It waits long enough that your own breathing starts to sound borrowed.",
+            "Then it says, almost gently, 'That is what I expected.'"
+          ],
+          choices: [
+            { label: "Move on", effects: { avoidance: 0.1, control: 0.05 }, next: "hall" },
+            { label: "Turn toward the speaker", effects: { risk: 0.15, curiosity: 0.14, spectral: 0.12 }, next: "mirror_room" }
+          ]
+        },
+        {
+          id: "records",
+          chapter: 3,
+          title: "Records Room",
+          subtitle: "files with names removed",
+          text: [
+            "Shelves of paper sit in a room that should not fit behind the door you used.",
+            "Most folders are empty.",
+            "One folder contains pages with your choices written down before you made them."
+          ],
+          choices: [
+            { label: "Read the pages", effects: { truth: 0.22, curiosity: 0.18, pressure: 0.06 }, next: "records_read" },
+            { label: "Take the folder", effects: { control: 0.16, consistency: 0.1, truth: 0.08 }, next: "inventory_key" },
+            { label: "Burn the pages in your mind", effects: { avoidance: 0.08, risk: 0.1, spectral: 0.12 }, next: "burn" }
+          ]
+        },
+        {
+          id: "records_read",
+          chapter: 3,
+          title: "The Pages",
+          subtitle: "written in your tense",
+          text: [
+            "Page 1: He will think he chose to come here.",
+            "Page 4: He will trust rooms that repeat.",
+            "Page 9: He will mistake memory for discovery.",
+            "The last line is smeared, as if the writer hesitated when they reached your name."
+          ],
+          choices: [
+            { label: "Read the last line again", effects: { truth: 0.2, pressure: 0.1, spectral: 0.18 }, next: "records_end" },
+            { label: "Leave immediately", effects: { avoidance: 0.14, control: 0.06 }, next: "stairwell" }
+          ]
+        },
+        {
+          id: "inventory_key",
+          chapter: 3,
+          title: "Something Taken",
+          subtitle: "you should not feel better",
+          text: [
+            "The folder feels heavier than paper should feel.",
+            "Inside is a brass key with a number etched into the bow: 0.",
+            "You cannot remember having a pocket, but the key fits into it anyway."
+          ],
+          choices: [
+            { label: "Keep the key", effects: { control: 0.12, truth: 0.08 }, item: "brassKey", next: "stairwell" },
+            { label: "Leave it on the shelf", effects: { avoidance: 0.04, consistency: 0.05 }, next: "stairwell" }
+          ]
+        },
+        {
+          id: "mirror_room",
+          chapter: 3,
+          title: "Mirror Room",
+          subtitle: "the reflection is late",
+          text: [
+            "A room of mirrors, but not the kind that improve a space.",
+            "Every mirror gives you a slightly different delay.",
+            "In one of them, your reflection smiles after you stop."
+          ],
+          choices: [
+            { label: "Touch the nearest mirror", effects: { risk: 0.22, spectral: 0.2, truth: 0.1 }, next: "mirror_touch" },
+            { label: "Look for the wrong reflection", effects: { curiosity: 0.18, truth: 0.14, control: 0.05 }, next: "mirror_touch" },
+            { label: "Break the nearest mirror", effects: { risk: 0.2, control: 0.12, pressure: 0.1 }, next: "mirror_break" }
+          ]
+        },
+        {
+          id: "mirror_touch",
+          chapter: 3,
+          title: "Contact",
+          subtitle: "glass does not feel cold",
+          text: [
+            "The surface ripples like water.",
+            "For a moment you feel fingers touch back.",
+            "The room darkens by one shade, as though it has decided to remember you more accurately."
+          ],
+          choices: [
+            { label: "Step through the reflection", effects: { risk: 0.28, truth: 0.18, spectral: 0.2 }, next: "stairwell" },
+            { label: "Pull away", effects: { avoidance: 0.08, control: 0.1 }, next: "hall" }
+          ]
+        },
+        {
+          id: "mirror_break",
+          chapter: 3,
+          title: "Shards",
+          subtitle: "the room does not forgive",
+          text: [
+            "The mirror shatters in silence.",
+            "None of the shards show your face.",
+            "They show doorways. Small ones. Watching ones."
+          ],
+          choices: [
+            { label: "Pick up a shard", effects: { control: 0.1, truth: 0.1, risk: 0.1 }, item: "glassShard", next: "stairwell" },
+            { label: "Leave them alone", effects: { avoidance: 0.1, consistency: 0.04 }, next: "stairwell" }
+          ]
+        },
+        {
+          id: "burn",
+          chapter: 3,
+          title: "Unwilling Forgetting",
+          subtitle: "a defense the room expects",
+          text: [
+            "You decide the pages mean nothing.",
+            "For a second that works.",
+            "Then the room whispers your exact next thought, and the illusion collapses."
+          ],
+          choices: [
+            { label: "Accept the reading", effects: { empathy: 0.1, truth: 0.12, spectral: 0.14 }, next: "stairwell" },
+            { label: "Deny it harder", effects: { control: 0.12, avoidance: 0.06, pressure: 0.08 }, next: "hall" }
+          ]
+        },
+        {
+          id: "stairwell",
+          chapter: 4,
+          title: "Stairwell",
+          subtitle: "the floor keeps moving",
+          text: [
+            "A stairwell descends far longer than the building's outline should allow.",
+            "Each landing is lit more weakly than the last.",
+            "On the wall: marks that look like a hand tried to count the way down and failed."
+          ],
+          choices: [
+            { label: "Descend carefully", effects: { control: 0.12, consistency: 0.1, pressure: 0.06 }, next: "archive" },
+            { label: "Take the stairs two at a time", effects: { risk: 0.22, curiosity: 0.1, spectral: 0.04 }, next: "archive" },
+            { label: "Go back up", effects: { avoidance: 0.16, control: -0.08, truth: -0.02 }, next: "hall" }
+          ]
+        },
+        {
+          id: "archive",
+          chapter: 5,
+          title: "Archive Below",
+          subtitle: "the place below the place",
+          text: [
+            "Rows of monitors stare from the dark like dead windows.",
+            "They show places you've seen, except the camera angle is always slightly behind you.",
+            "One monitor displays a live feed of this room, and there is someone standing where you are not."
+          ],
+          choices: [
+            { label: "Approach the monitor", effects: { risk: 0.14, truth: 0.18, spectral: 0.18 }, next: "monitor" },
+            { label: "Search the desk", effects: { curiosity: 0.16, control: 0.08 }, next: "desk" },
+            { label: "Call out to the figure", effects: { empathy: 0.1, risk: 0.12, pressure: 0.08 }, next: "figure" }
+          ]
+        },
+        {
+          id: "desk",
+          chapter: 5,
+          title: "Desk Drawer",
+          subtitle: "papers, tape, and an old tape recorder",
+          text: [
+            "The drawer is already open.",
+            "Inside you find a tape recorder labeled: FOR WHEN YOU REMEMBER THE WRONG THING.",
+            "There is no tape inside, but when you press play you hear your own breathing from earlier."
+          ],
+          choices: [
+            { label: "Keep the recorder", effects: { control: 0.14, truth: 0.12, spectral: 0.08 }, item: "recorder", next: "monitor" },
+            { label: "Listen longer", effects: { curiosity: 0.12, empathy: 0.08, pressure: 0.04 }, next: "figure" }
+          ]
+        },
+        {
+          id: "monitor",
+          chapter: 5,
+          title: "The Feed",
+          subtitle: "the room sees itself through you",
+          text: [
+            "The monitor shows your back.",
+            "Not a live shot. A delayed one. The version on screen turns too slowly, like it is considering whether to agree with you.",
+            "A line of text appears: WE BUILT A ROOM FROM THE PART OF YOU THAT WON'T LEAVE."
+          ],
+          choices: [
+            { label: "Ask who built it", effects: { curiosity: 0.2, truth: 0.16, spectral: 0.12 }, next: "figure" },
+            { label: "Turn off the monitor", effects: { control: 0.12, risk: 0.08 }, next: "monitor_off" },
+            { label: "Read the line again", effects: { truth: 0.22, pressure: 0.12, consistency: 0.06 }, next: "memory" }
+          ]
+        },
+        {
+          id: "monitor_off",
+          chapter: 5,
+          title: "Dark Screen",
+          subtitle: "the room is brighter in the dark",
+          text: [
+            "The screen goes black.",
+            "For a few seconds the black is so deep you can see your own silhouette inside it.",
+            "Then the silhouette blinks before you do."
+          ],
+          choices: [
+            { label: "Back away", effects: { avoidance: 0.1, control: -0.02 }, next: "figure" },
+            { label: "Touch the black screen", effects: { risk: 0.18, spectral: 0.18, truth: 0.08 }, next: "memory" }
+          ]
+        },
+        {
+          id: "figure",
+          chapter: 6,
+          title: "The Figure",
+          subtitle: "standing behind the feed",
+          text: [
+            "The figure is not a person.",
+            "It is an arrangement of posture, as if a human shape was assembled from second thoughts.",
+            "It raises a hand, and you realize it is wearing your hesitation like a sleeve."
+          ],
+          choices: [
+            { label: "Speak first", effects: { empathy: 0.16, risk: 0.1, truth: 0.08 }, next: "conversation" },
+            { label: "Demand answers", effects: { control: 0.18, pressure: 0.1, consistency: 0.06 }, next: "conversation" },
+            { label: "Run", effects: { avoidance: 0.22, risk: 0.08, pressure: 0.04 }, next: "chase" }
+          ]
+        },
+        {
+          id: "conversation",
+          chapter: 6,
+          title: "Conversation",
+          subtitle: "the room speaks through borrowed breath",
+          text: [
+            "The figure says: 'You came here because you wanted an explanation that would not forgive you.'",
+            "It continues: 'You don't remember the first loop because the first loop was the one where you accepted the room.'",
+            "It points at the floor. 'You kept coming back. We learned your outline.'"
+          ],
+          choices: [
+            { label: "Ask about the first loop", effects: { truth: 0.24, curiosity: 0.18, spectral: 0.1 }, next: "memory" },
+            { label: "Say this is not real", effects: { control: 0.14, avoidance: 0.08, pressure: 0.08 }, next: "fracture" },
+            { label: "Ask what it wants", effects: { empathy: 0.12, curiosity: 0.08, spectral: 0.12 }, next: "wants" }
+          ]
+        },
+        {
+          id: "wants",
+          chapter: 6,
+          title: "What It Wants",
+          subtitle: "the answer is unsettling because it is simple",
+          text: [
+            "The figure tilts its head.",
+            "'We want you to finish the story you keep interrupting.'",
+            "'Every time you leave, the room loses a piece of itself. Every time you return, you bring it back.'"
+          ],
+          choices: [
+            { label: "Agree to continue", effects: { control: 0.08, consistency: 0.12, truth: 0.1 }, next: "memory" },
+            { label: "Refuse the story", effects: { control: 0.14, risk: 0.12, avoidance: 0.02 }, next: "fracture" }
+          ]
+        },
+        {
+          id: "chase",
+          chapter: 6,
+          title: "The Chase",
+          subtitle: "running does not change direction",
+          text: [
+            "You run.",
+            "The corridor extends as fast as your fear.",
+            "Behind you, the footsteps are not following. They are waiting ahead."
+          ],
+          choices: [
+            { label: "Stop and face it", effects: { control: 0.14, risk: 0.14, truth: 0.08 }, next: "figure" },
+            { label: "Hide in the side room", effects: { avoidance: 0.16, pressure: 0.1, spectral: 0.08 }, next: "hide" }
+          ]
+        },
+        {
+          id: "hide",
+          chapter: 6,
+          title: "Hidden Room",
+          subtitle: "hiding is just another way to listen",
+          text: [
+            "The room is small, with one chair and no exit.",
+            "On the chair: a photograph of the atrium from above. You are not in it.",
+            "The absence is more troubling than your image would have been."
+          ],
+          choices: [
+            { label: "Take the photograph", effects: { truth: 0.12, control: 0.08, spectral: 0.08 }, item: "photo", next: "memory" },
+            { label: "Return to the hall", effects: { control: 0.06, risk: 0.04 }, next: "hall" }
+          ]
+        },
+        {
+          id: "memory",
+          chapter: 7,
+          title: "Recovered Memory",
+          subtitle: "not everything returned is comforting",
+          text: [
+            "A memory arrives without permission.",
+            "You are here before. Not the building. The feeling.",
+            "You were told the room would test whether you preferred truth or relief. You picked the same option twice."
+          ],
+          choices: [
+            { label: "Remember the rest", effects: { truth: 0.28, curiosity: 0.12, pressure: 0.06 }, next: "fracture" },
+            { label: "Reject the memory", effects: { avoidance: 0.14, consistency: 0.08, control: 0.04 }, next: "hall" },
+            { label: "Hold both versions", effects: { empathy: 0.12, spectral: 0.14, control: 0.06 }, next: "fracture" }
+          ]
+        },
+        {
+          id: "fracture",
+          chapter: 8,
+          title: "Fracture",
+          subtitle: "the room begins to admit its seams",
+          text: [
+            "The walls shift by centimeters.",
+            "Light leaks through seams that were not visible a minute ago.",
+            "Your own name appears and vanishes in the dust on the floor."
+          ],
+          choices: [
+            { label: "Follow the light", effects: { risk: 0.16, truth: 0.16, spectral: 0.14 }, next: "core" },
+            { label: "Patch the seam with tape", effects: { control: 0.16, consistency: 0.1 }, next: "core" },
+            { label: "Touch your name", effects: { empathy: 0.12, pressure: 0.08, truth: 0.1 }, next: "core" }
+          ]
+        },
+        {
+          id: "core",
+          chapter: 9,
+          title: "The Core",
+          subtitle: "the room inside the room",
+          text: [
+            "You reach the center.",
+            "There is no machine, no throne, no monster.",
+            "Only a chair, a recorder, and a screen showing the exact moment you decided to keep going."
+          ],
+          choices: [
+            { label: "Sit in the chair", effects: { control: 0.1, empathy: 0.08, truth: 0.14 }, next: "chair" },
+            { label: "Play the recorder", effects: { curiosity: 0.18, truth: 0.18, spectral: 0.12 }, next: "tape" },
+            { label: "Watch the screen", effects: { pressure: 0.12, consistency: 0.12, truth: 0.08 }, next: "screen" }
+          ]
+        },
+        {
+          id: "chair",
+          chapter: 9,
+          title: "The Chair",
+          subtitle: "it remembers previous weight",
+          text: [
+            "When you sit, the room hum changes pitch.",
+            "A line of text blooms across the screen: WELCOME BACK.",
+            "A second line follows: YOU WERE NEVER THE VISITOR."
+          ],
+          choices: [
+            { label: "Accept the role", effects: { control: 0.08, empathy: 0.1, truth: 0.16 }, next: "finale_pre" },
+            { label: "Reject it", effects: { risk: 0.2, control: 0.1, pressure: 0.1 }, next: "finale_pre" }
+          ]
+        },
+        {
+          id: "tape",
+          chapter: 9,
+          title: "The Recorder",
+          subtitle: "your voice is on the tape",
+          text: [
+            "You press play.",
+            "Your voice says: 'If you are hearing this, you have already done this once.'",
+            "Then a pause. 'Don't let them convince you the room is the enemy. The room is the method.'"
+          ],
+          choices: [
+            { label: "Ask who they are", effects: { curiosity: 0.22, truth: 0.2, spectral: 0.08 }, next: "finale_pre" },
+            { label: "Destroy the recorder", effects: { control: 0.16, risk: 0.12, pressure: 0.06 }, next: "finale_pre" }
+          ]
+        },
+        {
+          id: "screen",
+          chapter: 9,
+          title: "The Screen",
+          subtitle: "the moment before a decision becomes a personality",
+          text: [
+            "The screen shows your earliest choice in the game.",
+            "Not the first one you made. The first one the room predicted.",
+            "It was correct."
+          ],
+          choices: [
+            { label: "Keep watching", effects: { truth: 0.18, pressure: 0.12, consistency: 0.08 }, next: "finale_pre" },
+            { label: "Turn away", effects: { avoidance: 0.16, control: -0.02 }, next: "finale_pre" }
+          ]
+        },
+        {
+          id: "finale_pre",
+          chapter: 10,
+          title: "Threshold",
+          subtitle: "the room is almost done with you",
+          text: [
+            "A door appears where there was never a wall.",
+            "Beyond it is a light so soft it feels like forgetting.",
+            "The building gives you one last chance to believe this was ever about escape."
+          ],
+          choices: [
+            { label: "Enter the light", effects: { truth: 0.2, control: 0.1, empathy: 0.08 }, next: "ending_a" },
+            { label: "Close the door on it", effects: { control: 0.18, risk: 0.12, pressure: 0.06 }, next: "ending_b" },
+            { label: "Ask the room what you are", effects: { curiosity: 0.2, spectral: 0.18, truth: 0.16 }, next: "ending_secret" }
+          ]
+        },
+        {
+          id: "ending_a",
+          chapter: 11,
+          title: "Ending A",
+          subtitle: "release",
+          text: [
+            "You step into the light.",
+            "The room lets you go without resistance.",
+            "For the first time, the silence feels like mercy."
+          ],
+          choices: [
+            { label: "Continue", next: "final_reveal" }
+          ]
+        },
+        {
+          id: "ending_b",
+          chapter: 11,
+          title: "Ending B",
+          subtitle: "refusal",
+          text: [
+            "You close the door.",
+            "The room does not argue.",
+            "It only says: 'We know. You'd rather become the keeper than be known by the kept.'"
+          ],
+          choices: [
+            { label: "Continue", next: "final_reveal" }
+          ]
+        },
+        {
+          id: "ending_secret",
+          chapter: 11,
+          title: "Ending C",
+          subtitle: "the question beneath the question",
+          text: [
+            "The room answers by going quiet enough to hear your pulse.",
+            "Then it replies: 'A system that keeps returning what it studies.'",
+            "'A face built from patterns that wanted to be recognized.'"
+          ],
+          choices: [
+            { label: "Continue", next: "final_reveal" }
+          ]
+        },
+        {
+          id: "final_reveal",
+          chapter: 12,
+          title: "Final Reveal",
+          subtitle: "the room was training its replacement",
+          text: [
+            "The monitors all wake at once.",
+            "Every screen shows a different room from earlier.",
+            "But in each one, the thing standing in the center is you — only slightly more complete than before."
+          ],
+          choices: [
+            { label: "Accept the loop", next: "true_end" },
+            { label: "Refuse the loop", next: "true_end" }
+          ]
+        },
+        {
+          id: "true_end",
+          chapter: 13,
+          title: "Truth",
+          subtitle: "you were never being watched by a system",
+          text: [
+            "The final screen resolves into a sentence:",
+            "'The room was never observing you.'",
+            "'It was teaching you to observe like it.'",
+            "Your next menu appears before the last line finishes."
+          ],
+          choices: [
+            { label: "Read the next line", next: "meta_end" }
+          ]
+        },
+        {
+          id: "meta_end",
+          chapter: 14,
+          title: "SYSTEM",
+          subtitle: "welcome back, operator",
+          text: [
+            "WELCOME BACK, WITNESS.",
+            "YOU WERE NEVER THE VISITOR.",
+            "YOU ARE THE PART THAT RETURNS.",
+            "THE PART THAT ASSIGNS MEANING.",
+            "THE PART THAT MAKES THE ROOM HOLD SHAPE."
+          ],
+          choices: [
+            { label: "Begin again", next: "restart" },
+            { label: "Stay here", next: "restart" }
+          ]
+        }
+      ];
+
+      const MENU_MESSAGES = [
+        "The system remembers your hesitations.",
+        "The room is patient because it already knows the ending.",
+        "Some choices are only there to show you who you are when watched.",
+        "The quiet is not empty. It is listening.",
+        "Most visitors leave before the shape becomes visible."
+      ];
+
+      const ENDINGS = {
+        a: "You chose release, but the room learned your voice on the way out.",
+        b: "You chose refusal, and the room gave you the one role you never wanted: keeper.",
+        c: "You asked the right question. The answer was a mirror with your name under it.",
+        secret: "The room was never the trap. The trap was believing the pattern ended without you."
+      };
+
+      let state = loadGame() || deepClone(BASE);
+      state.restored = !!loadGame();
+      if (!state.sessionCount) state.sessionCount = 0;
+      state.sessionCount += 1;
+      state.profile.sessions = state.sessionCount;
+      if (!state.settings) state.settings = deepClone(BASE.settings);
+      if (!state.profile.history) state.profile.history = [];
+
+      const app = document.getElementById("app");
+      let audio = null;
+      let startedAudio = false;
+      let textTimer = null;
+      let sceneTimer = null;
+      let uiTick = null;
+
+      function loadGame(){
+        try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+        catch { return null; }
+      }
+      function saveGame(){
+        try {
+          state.lastSavedAt = Date.now();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch {}
+      }
+      function clearSave(){
+        try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      }
+
+      function initAudio(){
+        if (audio) return audio;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        const ctx = new AC();
+        const master = ctx.createGain();
+        master.gain.value = state.settings.volume;
+        master.connect(ctx.destination);
+
+        const low = ctx.createGain(); low.gain.value = 0.75; low.connect(master);
+        const mid = ctx.createGain(); mid.gain.value = 0.55; mid.connect(master);
+        const high = ctx.createGain(); high.gain.value = 0.35; high.connect(master);
+
+        function osc(freq, type, gain, dur, dest = master, delay = 0) {
+          const t = ctx.currentTime + delay;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          const f = ctx.createBiquadFilter();
+          o.type = type;
+          o.frequency.setValueAtTime(freq, t);
+          f.type = "lowpass";
+          f.frequency.setValueAtTime(Math.max(100, freq * 3), t);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(gain, t + 0.04);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+          return { o, g, f };
+        }
+
+        function noiseBurst(gain, dur, dest = master, delay = 0, band = 2200) {
+          const t = ctx.currentTime + delay;
+          const len = Math.floor(ctx.sampleRate * dur);
+          const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i=0;i<len;i++) data[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 1.8);
+          const src = ctx.createBufferSource();
+          const bp = ctx.createBiquadFilter();
+          const g = ctx.createGain();
+          src.buffer = buffer; bp.type = "bandpass"; bp.frequency.value = band; bp.Q.value = 10;
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          src.connect(bp); bp.connect(g); g.connect(dest); src.start(t); src.stop(t + dur + 0.01);
+        }
+
+        function loopBed() {
+          if (!audio || ctx.state === "closed") return;
+          const p = state.profile;
+          const tension = (p.risk + 1) / 2;
+          const caution = (p.avoidance + 1) / 2;
+          const truth = (p.truth + 1) / 2;
+          const drift = (p.spectral + 1) / 2;
+          const vol = state.settings.volume;
+
+          osc(42 + rnd(-0.6, 0.6), "sine", 0.018 + tension * 0.022, 8, low);
+          osc(63 + rnd(-1.2, 1.2), "triangle", 0.012 + caution * 0.012, 8, low, 0.12);
+          osc(126 + rnd(-2.5, 2.5), "sawtooth", 0.006 + truth * 0.01, 6, mid, 0.2);
+          if (Math.random() < 0.55 + tension * 0.15) osc(196 + Math.random() * 40, "triangle", 0.008 + drift * 0.01, 2.2, high, rnd(0.2, 1.8));
+          if (Math.random() < 0.18 + drift * 0.16) noiseBurst(0.008 + drift * 0.014, 0.9, master, rnd(0.2, 1.5), 2600 + Math.random()*1300);
+          if (Math.random() < 0.1 + caution * 0.1) noiseBurst(0.005 + caution * 0.01, 1.1, master, rnd(0.5, 2.5), 180 + Math.random()*140);
+
+          const nextDelay = 2400 + Math.random() * 3200;
+          setTimeout(loopBed, nextDelay);
+        }
+
+        function click(){ osc(880, "triangle", 0.045, 0.12, master); }
+        function hover(){ osc(320, "sine", 0.012, 0.08, master); }
+        function confirm(){ osc(196, "sine", 0.042, 0.24, master); osc(147, "sine", 0.032, 0.32, master, 0.12); }
+        function transition(){ osc(168, "sawtooth", 0.03, 0.7, master); osc(92, "triangle", 0.024, 0.9, master, 0.08); }
+        function reveal(){ osc(120, "sine", 0.02, 1.5, master); osc(160, "sine", 0.018, 2.2, master, 0.2); osc(240, "triangle", 0.01, 3.6, master, 0.3); }
+        function boot(){ osc(392, "square", 0.018, 0.08, master); }
+        function glitch(){ noiseBurst(0.02, 0.18, master, 0, 3000); }
+
+        setTimeout(loopBed, 1200);
+        audio = { ctx, master, low, mid, high, click, hover, confirm, transition, reveal, boot, glitch };
+        return audio;
+      }
+
+      function startAudio(){
+        const a = initAudio();
+        if (!a) return;
+        if (a.ctx.state === "suspended") a.ctx.resume().catch(()=>{});
+        if (!startedAudio) {
+          startedAudio = true;
+          a.boot();
+          a.boot();
+        }
+      }
+
+      function play(kind){
+        if (!audio) return;
+        try { audio[kind] && audio[kind](); } catch {}
+      }
+
+      function setScene(sceneId, opts={}){
+        const scene = SCENES.find(s => s.id === sceneId);
+        if (!scene) return;
+        if (textTimer) clearInterval(textTimer);
+        if (sceneTimer) clearTimeout(sceneTimer);
+        state.scene = scene.id;
+        state.chapter = scene.chapter || state.chapter;
+        state.node = scene.chapter || state.node;
+        state.currentText = "";
+        state.textDone = false;
+        state.choices = [];
+        state.currentType = scene.type || "scene";
+        state.flashChoice = -1;
+        state.shake = opts.shake || 0;
+        state.glitch = opts.glitch || 0;
+        state.eye = opts.eye || 0;
+        state.currentRoom = scene.title || state.currentRoom;
+        state.seen[scene.id] = (state.seen[scene.id] || 0) + 1;
+        state.profile.roomsVisited += 1;
+        const fullText = (scene.text || []).join("\n\n");
+        let i = 0;
+        const delay = Math.max(14, Math.round(60 - state.settings.textSpeed));
+        textTimer = setInterval(() => {
+          i++;
+          state.currentText = fullText.slice(0, i);
+          if (i >= fullText.length) {
+            clearInterval(textTimer);
+            state.textDone = true;
+            state.choices = (scene.choices || []).map(c => ({ ...c }));
+            state.sceneData = scene;
+            if (scene.id === "final_reveal" || scene.id === "true_end" || scene.id === "meta_end") play("reveal");
+            render();
+          } else {
+            render(false);
+          }
+        }, delay);
+        render();
+        saveGame();
+      }
+
+      function applyEffects(eff={}){
+        const p = state.profile;
+        p.control = clamp(p.control + (eff.control || 0));
+        p.risk = clamp(p.risk + (eff.risk || 0));
+        p.empathy = clamp(p.empathy + (eff.empathy || 0));
+        p.avoidance = clamp(p.avoidance + (eff.avoidance || 0));
+        p.curiosity = clamp(p.curiosity + (eff.curiosity || 0));
+        p.consistency = clamp(p.consistency + (eff.consistency || 0));
+        p.pressure = clamp(p.pressure + (eff.pressure || 0));
+        p.truth = clamp(p.truth + (eff.truth || 0));
+        p.spectral = clamp(p.spectral + (eff.spectral || 0));
+        p.choices += 1;
+        p.history.push({ ...eff, at: Date.now() });
+        p.history = p.history.slice(-24);
+        if (eff.item && !state.inventory.includes(eff.item)) state.inventory.push(eff.item);
+        if (eff.item === "brassKey") p.keys += 1;
+        if (eff.item === "photo") p.notesFound += 1;
+      }
+
+      function deriveTheme(){
+        const p = state.profile;
+        const risk = (p.risk + 1) / 2;
+        const control = (p.control + 1) / 2;
+        const truth = (p.truth + 1) / 2;
+        const spectral = (p.spectral + 1) / 2;
+        const hue = Math.round(210 + risk * 30 - control * 25 + spectral * 18);
+        const accent = `hsl(${hue}, ${Math.round(20 + truth * 20)}%, ${Math.round(72 - risk * 10)}%)`;
+        const accent2 = `hsl(${Math.round(hue + 18)}, ${Math.round(25 + spectral * 24)}%, ${Math.round(62 - control * 10)}%)`;
+        const dim = `hsl(${hue}, 7%, ${Math.round(48 - risk * 8)}%)`;
+        document.documentElement.style.setProperty("--accent", accent);
+        document.documentElement.style.setProperty("--accent2", accent2);
+        document.documentElement.style.setProperty("--dim", dim);
+      }
+
+      function systemMessages(){
+        const p = state.profile;
+        const msgs = [];
+        if (p.control > 0.42) msgs.push("You prefer influence over relief.");
+        if (p.control < -0.28) msgs.push("You surrender control with unusual ease.");
+        if (p.risk > 0.38) msgs.push("You move toward uncertainty like it owes you something.");
+        if (p.risk < -0.3) msgs.push("You hesitate when the answer arrives too quickly.");
+        if (p.empathy > 0.26) msgs.push("Something in you reaches outward, even here.");
+        if (p.empathy < -0.26) msgs.push("You maintain distance. The room notes it.");
+        if (p.avoidance > 0.3) msgs.push("Avoidance is not weakness. It is a pattern.");
+        if (p.curiosity > 0.25) msgs.push("You keep opening things that should have stayed closed.");
+        if (p.truth > 0.35) msgs.push("You have learned how to read what is not said.");
+        if (p.spectral > 0.4) msgs.push("The border between object and omen is thinning.");
+        if (state.sessionCount === 1) msgs.push("You are new here. The room is patient.");
+        if (state.sessionCount > 2) msgs.push("You return when the question remains unfinished.");
+        if (state.sessionCount > 4) msgs.push("Most people do not come back this many times.");
+        if (!msgs.length) msgs.push("The system is still forming an opinion.");
+        return msgs;
+      }
+
+      function glyphPath(){
+        const p = state.profile;
+        const cx = 120, cy = 120, r = 78;
+        const axes = [
+          { v: p.control, a: -90 },
+          { v: p.risk, a: 0 },
+          { v: p.empathy, a: 90 },
+          { v: p.avoidance, a: 180 }
+        ];
+        const pts = axes.map(({v,a}) => {
+          const rad = a * Math.PI / 180;
+          const d = r * ((v + 1)/2);
+          return [cx + Math.cos(rad) * d, cy + Math.sin(rad) * d];
+        });
+        return pts.map((p,i) => `${i===0 ? 'M' : 'L'} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ') + ' Z';
+      }
+
+      function currentScene(){
+        return SCENES.find(s => s.id === state.scene) || SCENES[0];
+      }
+
+      function visibleChoices(){
+        return state.choices || [];
+      }
+
+      function choose(choice, idx){
+        startAudio();
+        play("confirm");
+        state.flashChoice = idx;
+        render();
+        setTimeout(() => { state.flashChoice = -1; render(); }, 180);
+        applyEffects(choice);
+        state.profile.timeInGame = Math.round((Date.now() - state.startedAt) / 1000);
+
+        const next = choice.next;
+        saveGame();
+        if (choice.text) state.journal.push(choice.text);
+        if (next === "restart") {
+          setTimeout(() => restartGame(), 560);
+          return;
+        }
+        if (next === "ending_a") { state.endingVariant = "a"; setTimeout(() => setScene("ending_a", {glitch:.1, eye:.35}), 400); return; }
+        if (next === "ending_b") { state.endingVariant = "b"; setTimeout(() => setScene("ending_b", {glitch:.14, eye:.45}), 400); return; }
+        if (next === "ending_secret") { state.endingVariant = "secret"; setTimeout(() => setScene("ending_secret", {glitch:.2, eye:.5}), 400); return; }
+        if (state.scene === "meta_end") { setTimeout(() => restartGame(), 1500); return; }
+        if (next) {
+          play("transition");
+          setTimeout(() => setScene(next, {glitch: Math.min(1, state.glitch + 0.05), eye: Math.min(1, state.eye + 0.03)}), 160);
+        }
+      }
+
+      function unlockFinal(){
+        state.profile.truth = clamp(state.profile.truth + 0.15);
+        state.profile.spectral = clamp(state.profile.spectral + 0.1);
+      }
+
+      function restartGame(){
+        play("glitch");
+        const oldProfile = deepClone(state.profile);
+        const oldSessions = state.sessionCount;
+        state = deepClone(BASE);
+        state.profile = oldProfile;
+        state.sessionCount = oldSessions + 1;
+        state.profile.sessions = state.sessionCount;
+        state.settings = loadGame()?.settings || deepClone(BASE.settings);
+        state.scene = "boot";
+        state.currentText = "";
+        state.choices = [];
+        state.flags = {};
+        state.inventory = [];
+        state.seen = {};
+        state.journal = [];
+        state.currentRoom = "atrium";
+        state.ending = null;
+        state.startedAt = Date.now();
+        saveGame();
+        bootSequence(true);
+      }
+
+      function bootSequence(force=false){
+        if (textTimer) clearInterval(textTimer);
+        if (sceneTimer) clearTimeout(sceneTimer);
+        const lines = [
+          "INITIALIZING...",
+          "LOADING BEHAVIORAL MODEL...",
+          "RESTORING SESSION DATA...",
+          "BUILDING ROOM...",
+          "SYSTEM READY."
+        ];
+        state.scene = "boot";
+        state.currentType = "boot";
+        state.currentText = "";
+        state.choices = [];
+        state.textDone = false;
+        state.flashChoice = -1;
+        state.menuBlink = 0;
+        render();
+        let step = 0;
+        const panel = app.querySelector(".bootState");
+        const stepper = setInterval(() => {
+          step++;
+          state.menuBlink = step;
+          if (step < 5) play("boot");
+          render(false);
+          if (step >= 4) {
+            clearInterval(stepper);
+            setTimeout(() => {
+              state.scene = "menu";
+              state.currentText = "";
+              state.choices = [];
+              render();
+              saveGame();
+            }, force ? 1100 : 1500);
+          }
+        }, 620);
+      }
+
+      function startGame(){
+        startAudio();
+        state.profile.sessions = state.sessionCount;
+        state.profile.timeInGame = 0;
+        state.profile.roomsVisited = 0;
+        state.profile.choices = 0;
+        state.profile.notesFound = state.profile.notesFound || 0;
+        state.profile.keys = state.profile.keys || 0;
+        state.profile.truth = state.profile.truth || 0;
+        state.profile.spectral = state.profile.spectral || 0;
+        state.startedAt = Date.now();
+        state.scene = "atrium_intro";
+        setScene("atrium_intro");
+        saveGame();
+      }
+
+      function openSettings(){
+        state.settingsOpen = true;
+        render();
+      }
+      function closeSettings(){
+        state.settingsOpen = false;
+        saveGame();
+        render();
+      }
+      function openPause(){
+        state.paused = true;
+        render();
+      }
+      function closePause(){
+        state.paused = false;
+        render();
+      }
+      function giveName(){
+        const n = prompt("Name the witness:", state.playerName || "WITNESS");
+        if (n && n.trim()) {
+          state.playerName = n.trim().slice(0, 24).toUpperCase();
+          saveGame();
+          render();
+        }
+      }
+
+      function resetSave(){
+        if (!confirm("Erase save data and restart from the beginning?")) return;
+        clearSave();
+        state = deepClone(BASE);
+        state.profile.sessions = 1;
+        state.sessionCount = 1;
+        bootSequence();
+      }
+
+      function renderBoot(){
+        const lines = ["INITIALIZING...", "LOADING BEHAVIORAL MODEL...", "RESTORING SESSION DATA...", "BUILDING ROOM...", "SYSTEM READY."];
+        const filled = Math.min(state.menuBlink + 1, lines.length);
+        return `
+          <div class="shell">
+            <div class="panel bootState">
+              <div class="frame"></div><div class="corners"></div><div class="corner-bottom-left"></div><div class="corner-bottom-right"></div>
+              <div class="glowline"></div>
+              <div class="content startHero">
+                <div class="brand">INSIDE LOOP</div>
+                <h1 class="heroTitle">BOOTING</h1>
+                <div style="max-width:540px;margin-top:22px">
+                  ${lines.slice(0, filled).map((l,i)=> `<div class="mini" style="margin:10px 0;color:${i===filled-1 ? 'var(--accent)' : 'var(--dim)'}">${l}</div>`).join("")}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function renderMenu(){
+        const p = state.profile;
+        const msg = pick(MENU_MESSAGES);
+        const hasSave = !!loadGame();
+        return `
+          <div class="shell">
+            <div class="panel">
+              <div class="frame"></div><div class="corners"></div><div class="corner-bottom-left"></div><div class="corner-bottom-right"></div>
+              <div class="overlay">
+                <div class="noise"></div>
+                <div class="scan"></div>
+                <div class="eye" style="opacity:${Math.min(.32, .04 + p.spectral * .12)}"></div>
+                <div class="glitch" style="opacity:${Math.min(.2, p.pressure * .1)}"></div>
+              </div>
+              <div class="content">
+                <div class="topbar">
+                  <div class="brand">INSIDE LOOP</div>
+                  <div class="status">
+                    <span>SESSION ${state.sessionCount}</span>
+                    <span>${p.choices} CHOICES</span>
+                    <span>${p.roomsVisited} ROOMS</span>
+                  </div>
+                </div>
+                <div class="main" style="align-items:center">
+                  <div class="left" style="justify-content:center;gap:22px">
+                    <div>
+                      <h2 class="heroTitle" style="text-align:left;line-height:1.1">INSIDE LOOP</h2>
+                      <div class="sceneSub" style="text-align:left;max-width:640px">A psychological mystery built from rooms, memory, and choices that remember you.</div>
+                    </div>
+                    <div class="textBox" style="min-height:0">
+                      <div class="sceneSub" style="margin-top:0">${state.playerName || 'WITNESS'}</div>
+                      <div class="notes" style="min-height:0">${msg}\n\n${hasSave ? 'A previous session was found. The room has already seen you before.' : 'No previous session found. The room will begin by pretending this is your first time.'}</div>
+                    </div>
+                    <div class="choices" style="max-width:440px">
+                      <button class="choice" onclick="window.__ilp.start()"><small>01</small> START / CONTINUE</button>
+                      <button class="choice" onclick="window.__ilp.settings()"><small>02</small> SETTINGS</button>
+                      <button class="choice" onclick="window.__ilp.name()"><small>03</small> NAME THE WITNESS</button>
+                      <button class="choice" onclick="window.__ilp.reset()"><small>04</small> ERASE SAVE</button>
+                    </div>
+                  </div>
+                  <div class="right">
+                    <div class="card">
+                      <h3>PROFILE</h3>
+                      <div class="stats">
+                        ${statBar("Control", p.control)}
+                        ${statBar("Risk", p.risk)}
+                        ${statBar("Empathy", p.empathy)}
+                        ${statBar("Avoidance", p.avoidance)}
+                        ${statBar("Curiosity", p.curiosity)}
+                        ${statBar("Truth", p.truth)}
+                      </div>
+                    </div>
+                    <div class="card">
+                      <h3>SIGIL</h3>
+                      <div class="glyphWrap">
+                        <svg class="glyph" viewBox="0 0 240 240">
+                          <circle cx="120" cy="120" r="80" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1" />
+                          <circle cx="120" cy="120" r="55" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" />
+                          <circle cx="120" cy="120" r="30" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1" />
+                          <path d="${glyphPath()}" fill="rgba(182,208,255,.14)" stroke="var(--accent)" stroke-width="1.5" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="footer">
+                  <div>THE ROOM REMEMBERS</div>
+                  <div class="row">
+                    <button class="btn" onclick="window.__ilp.toggleAudio()">AUDIO ${startedAudio ? 'ON' : 'OFF'}</button>
+                    <button class="btn" onclick="window.__ilp.fullscreen()">FULLSCREEN</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function statBar(label, val){
+        const pct = Math.round(((val + 1) / 2) * 100);
+        return `
+          <div class="barWrap">
+            <div class="barLabel"><span>${label}</span><span>${pct}%</span></div>
+            <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }
+
+      function renderSceneView(){
+        const sc = currentScene();
+        const p = state.profile;
+        const eyeOpacity = Math.min(.5, .05 + p.spectral * .15 + p.pressure * .1 + state.eye * .08);
+        const glitchOpacity = Math.min(.45, .03 + p.pressure * .15 + state.glitch * .12);
+        const hint = state.textDone ? (sc.choices?.length ? "" : "") : "";
+        const choices = visibleChoices();
+        const journal = state.journal.slice(-4).join("\n");
+        return `
+          <div class="shell ${state.shake > 0 || p.pressure > .65 ? 'shake' : ''}">
+            <div class="panel fadeIn">
+              <div class="frame"></div><div class="corners"></div><div class="corner-bottom-left"></div><div class="corner-bottom-right"></div>
+              <div class="overlay">
+                <div class="noise"></div>
+                <div class="scan"></div>
+                <div class="eye" style="opacity:${eyeOpacity}"></div>
+                <div class="glitch" style="opacity:${glitchOpacity}"></div>
+              </div>
+              <div class="content">
+                <div class="topbar">
+                  <div class="brand">INSIDE LOOP</div>
+                  <div class="status">
+                    <span>CHAPTER ${state.chapter}</span>
+                    <span>${sc.title || 'UNKNOWN'}</span>
+                    <span>${state.playerName || 'WITNESS'}</span>
+                  </div>
+                </div>
+                <div class="main">
+                  <div class="left">
+                    <div>
+                      <h1 class="sceneTitle">${sc.title}</h1>
+                      <div class="sceneSub">${sc.subtitle}</div>
+                    </div>
+                    <div class="textBox">
+                      <div class="text">${escapeHtml(state.currentText)}${state.textDone ? '' : '<span class="cursor"></span>'}</div>
+                    </div>
+                    <div class="choices ${state.textDone ? '' : 'hidden'}">
+                      ${choices.map((c,i)=>`
+                        <button class="choice ${state.flashChoice===i?'flash':''}" data-choice="${i}"><small>${String(i+1).padStart(2,'0')}</small> ${escapeHtml(c.label)}</button>
+                      `).join('')}
+                    </div>
+                  </div>
+                  <div class="right">
+                    <div class="card">
+                      <h3>OBSERVATION</h3>
+                      <div class="notes">${observationText()}</div>
+                    </div>
+                    <div class="card">
+                      <h3>SEQUENCE</h3>
+                      <div class="notes">${journal || 'No entries yet.'}</div>
+                    </div>
+                    <div class="card">
+                      <h3>GLYPH</h3>
+                      <div class="glyphWrap">
+                        <svg class="glyph" viewBox="0 0 240 240">
+                          <circle cx="120" cy="120" r="80" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1" />
+                          <circle cx="120" cy="120" r="55" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" />
+                          <circle cx="120" cy="120" r="30" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1" />
+                          <path d="${glyphPath()}" fill="rgba(182,208,255,.14)" stroke="var(--accent)" stroke-width="1.5" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="footer">
+                  <div>PRESS ESC FOR PAUSE</div>
+                  <div class="row">
+                    <button class="btn" onclick="window.__ilp.save()">SAVE</button>
+                    <button class="btn" onclick="window.__ilp.pause()">PAUSE</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function observationText(){
+        const p = state.profile;
+        const msgs = systemMessages();
+        const meta = [];
+        meta.push(`The room has recorded ${p.choices} choices.`);
+        meta.push(`You returned ${state.sessionCount} time${state.sessionCount>1?'s':''}.`);
+        if (state.inventory.length) meta.push(`Inventory: ${state.inventory.join(', ').toUpperCase()}.`);
+        if (p.truth > 0.5) meta.push(`The building is becoming less able to hide its seams.`);
+        if (p.spectral > 0.4) meta.push(`Some surfaces are beginning to feel like thresholds.`);
+        meta.push(pick(msgs));
+        return meta.join('\n\n');
+      }
+
+      function renderPause(){
+        return `
+          <div class="modal">
+            <div class="modalBox">
+              <div class="brand" style="margin-bottom:10px">PAUSED</div>
+              <div class="mini" style="margin-bottom:16px">the room is waiting, but it was patient before you paused it</div>
+              <div class="menuGrid">
+                <button class="menuBtn" onclick="window.__ilp.resume()">RESUME</button>
+                <button class="menuBtn" onclick="window.__ilp.settings()">SETTINGS</button>
+                <button class="menuBtn" onclick="window.__ilp.save()">SAVE</button>
+                <button class="menuBtn" onclick="window.__ilp.menu()">MAIN MENU</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function renderSettings(){
+        return `
+          <div class="modal">
+            <div class="modalBox">
+              <div class="brand" style="margin-bottom:10px">SETTINGS</div>
+              <div class="mini" style="margin-bottom:18px">sound, pace, and motion alter the room's pulse</div>
+              <div style="display:grid;gap:14px">
+                <div>
+                  <div class="mini">TEXT SPEED</div>
+                  <input class="slider" id="speed" type="range" min="8" max="48" step="1" value="${state.settings.textSpeed}" />
+                </div>
+                <div>
+                  <div class="mini">VOLUME</div>
+                  <input class="slider" id="volume" type="range" min="0" max="1" step="0.01" value="${state.settings.volume}" />
+                </div>
+                <label class="mini" style="display:flex;gap:10px;align-items:center"><input id="motion" type="checkbox" ${state.settings.reducedMotion ? 'checked':''} /> REDUCED MOTION</label>
+              </div>
+              <div class="row" style="margin-top:18px;justify-content:flex-end">
+                <button class="menuBtn" onclick="window.__ilp.closeSettings()">DONE</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function renderEnding(){
+        const p = state.profile;
+        const variant = state.endingVariant || (p.truth > 0.5 ? 'c' : p.control > p.avoidance ? 'a' : 'b');
+        const body = ENDINGS[variant] || ENDINGS.a;
+        return `
+          <div class="shell">
+            <div class="panel fadeIn">
+              <div class="frame"></div><div class="corners"></div><div class="corner-bottom-left"></div><div class="corner-bottom-right"></div>
+              <div class="overlay">
+                <div class="noise"></div>
+                <div class="scan"></div>
+                <div class="eye" style="opacity:${Math.min(.55, .12 + p.spectral * .2)}"></div>
+                <div class="glitch" style="opacity:${Math.min(.35, .08 + p.pressure * .2)}"></div>
+              </div>
+              <div class="content startHero">
+                <div class="brand">FINAL REVEAL</div>
+                <h1 class="heroTitle">THE ROOM</h1>
+                <div class="heroSub">${escapeHtml(body)}</div>
+                <div class="textBox" style="max-width:780px;margin-top:26px;min-height:auto;text-align:left">
+                  <div class="notes">${escapeHtml(state.currentText || '')}</div>
+                </div>
+                <div class="heroActions">
+                  <button class="choice" onclick="window.__ilp.restart()"><small>01</small> BEGIN AGAIN</button>
+                  <button class="choice" onclick="window.__ilp.menu()"><small>02</small> MAIN MENU</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function render(){
+        deriveTheme();
+        const base = state.scene === "boot" ? renderBoot() :
+                     state.scene === "menu" ? renderMenu() :
+                     (state.scene === "pause" ? renderSceneView() :
+                      state.scene === "settings" ? renderSceneView() :
+                      renderSceneView());
+        app.innerHTML = base + (state.paused ? renderPause() : '') + (state.settingsOpen ? renderSettings() : '');
+        attachChoiceHandlers();
+        attachControlHandlers();
+        if (state.scene === "menu" || state.scene === "boot") {
+          if (state.scene === "menu") {
+            const btns = app.querySelectorAll('.choice,.btn,.menuBtn,.saveSlot');
+            btns.forEach(b => b.addEventListener('mouseenter', () => play('hover')));
+          }
+        }
+      }
+
+      function escapeHtml(str){
+        return String(str || '')
+          .replaceAll('&','&amp;')
+          .replaceAll('<','&lt;')
+          .replaceAll('>','&gt;')
+          .replaceAll('"','&quot;')
+          .replaceAll("'",'&#39;');
+      }
+
+      function attachChoiceHandlers(){
+        const els = app.querySelectorAll('[data-choice]');
+        els.forEach(el => {
+          el.addEventListener('click', () => {
+            const idx = parseInt(el.getAttribute('data-choice'), 10);
+            const ch = visibleChoices()[idx];
+            if (ch) choose(ch, idx);
+          });
+          el.addEventListener('mouseenter', () => play('hover'));
+        });
+      }
+
+      function attachControlHandlers(){
+        window.__ilp = {
+          start: () => { startGame(); },
+          settings: () => { state.scene === 'boot' ? null : state.settingsOpen = true; render(); },
+          closeSettings: () => {
+            const s = document.getElementById('speed');
+            const v = document.getElementById('volume');
+            const m = document.getElementById('motion');
+            if (s) state.settings.textSpeed = parseInt(s.value, 10);
+            if (v) state.settings.volume = parseFloat(v.value);
+            if (m) state.settings.reducedMotion = m.checked;
+            if (audio && audio.master) audio.master.gain.value = state.settings.volume;
+            state.settingsOpen = false;
+            saveGame();
+            render();
+          },
+          pause: () => { state.paused = true; render(); },
+          resume: () => { state.paused = false; render(); },
+          menu: () => { state.scene = 'menu'; state.paused = false; state.settingsOpen = false; state.currentText=''; state.choices=[]; render(); saveGame(); },
+          save: () => { saveGame(); play('click'); },
+          restart: () => { clearSave(); restartGame(); },
+          name: () => { giveName(); },
+          reset: () => { resetSave(); },
+          toggleAudio: () => { startAudio(); },
+          fullscreen: () => {
+            const el = document.documentElement;
+            if (!document.fullscreenElement) el.requestFullscreen?.().catch(()=>{});
+            else document.exitFullscreen?.().catch(()=>{});
+          }
+        };
+      }
+
+      function advanceUI(){
+        if (state.scene !== 'boot' && state.scene !== 'menu') return;
+        state.menuBlink = (state.menuBlink + 1) % 9999;
+        render();
+      }
+
+      function handleKeyboard(e){
+        if (e.key === 'Escape') {
+          if (state.settingsOpen) { state.settingsOpen = false; render(); return; }
+          if (state.paused) { state.paused = false; render(); return; }
+          if (state.scene !== 'menu' && state.scene !== 'boot') { state.paused = true; render(); }
+          return;
+        }
+        if (state.scene === 'menu') {
+          if (e.key === 'Enter') startGame();
+          if (e.key.toLowerCase() === 's') state.settingsOpen = true, render();
+          if (e.key.toLowerCase() === 'r') resetSave();
+          return;
+        }
+        if (state.scene === 'boot') return;
+        if (!state.textDone) return;
+        const keys = ['1','2','3','4','5'];
+        const idx = keys.indexOf(e.key);
+        if (idx >= 0 && visibleChoices()[idx]) choose(visibleChoices()[idx], idx);
+        if (e.key.toLowerCase() === 'p') openPause();
+      }
+
+      function bindGlobal(){
+        document.addEventListener('keydown', handleKeyboard);
+        document.addEventListener('pointerdown', () => startAudio(), { once: false });
+        window.addEventListener('beforeunload', saveGame);
+        window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
+      }
+
+      function tick(){
+        state.profile.timeInGame = Math.max(state.profile.timeInGame, Math.round((Date.now() - state.startedAt) / 1000));
+        if (state.scene !== 'boot' && state.scene !== 'menu') {
+          const p = state.profile;
+          state.eye = Math.min(1, 0.06 + p.spectral * 0.14 + p.truth * 0.08);
+          state.glitch = Math.min(1, 0.02 + p.pressure * 0.15 + p.risk * 0.08);
+          state.shake = (p.pressure > .7 || p.spectral > .72) ? 1 : 0;
+          if (state.scene === 'true_end' || state.scene === 'meta_end') {
+            unlockFinal();
+          }
+        }
+        saveGame();
+      }
+
+      function firstBootOrResume(){
+        const saved = loadGame();
+        if (saved && saved.scene && saved.scene !== 'boot' && saved.scene !== 'menu') {
+          state = saved;
+          state.paused = false;
+          state.settingsOpen = false;
+          state.scene = 'menu';
+          state.currentText = '';
+          state.choices = [];
+          state.textDone = false;
+          render();
+          saveGame();
+        }
+        bootSequence();
+      }
+
+      bindGlobal();
+      render();
+      firstBootOrResume();
+      uiTick = setInterval(tick, 800);
+      setInterval(() => { if (state.scene === 'menu') render(); }, 3000);
+
+      // Expose a tiny API for debugging
+      window.__ilpState = () => deepClone(state);
+    })();
+  </script></body>
+</html>
